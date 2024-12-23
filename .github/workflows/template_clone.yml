@@ -1,0 +1,32 @@
+name: Repository Template Initializer
+
+on: fork
+
+jobs:
+  configure-repo:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Repository Name and Initialize from Template
+        env:
+          GH_TOKEN: ${{ secrets.REPO_CREATION_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          if [[ -z "$GH_TOKEN" ]]; then
+            echo "Error: GH_TOKEN is not set."
+            exit 1
+          fi
+          declare -A TEMPLATES=(["rpa-"]="https://github.com/bciupka/postgres-training.git" ["backend-"]="https://github.com/bciupka/nosqlTodoApps.git")
+          TEMPLATE=""
+          for prefix in "${!TEMPLATES[@]}"; do
+            if [[ "$REPO_NAME" == "$prefix"* ]]; then
+              TEMPLATE="${TEMPLATES[$prefix]}"
+              break
+            fi
+          done
+          if [[ -n "$TEMPLATE" ]]; then
+            gh repo edit $REPO_NAME --template $TEMPLATE
+            gh api --method PUT -H "Accept: application/vnd.github+json" /repos/${{ github.repository_owner }}/$REPO_NAME/branches/main/protection -f required_status_checks='{"strict": true, "contexts": ["ci/checks"]}' -f enforce_admins=true -f required_pull_request_reviews='{"required_approving_review_count": 1}' -f restrictions=null -f required_linear_history=true
+            echo "Repository initialized from template: $TEMPLATE"
+          else
+            echo "No matching template found for repository: $REPO_NAME"
+          fi

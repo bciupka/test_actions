@@ -1,0 +1,12 @@
+name: "On firts push only"
+
+on: push
+
+jobs:
+  configure-repo:
+    if: github.run_number == 1
+    runs-on: ubuntu-latest
+    steps:
+      - name: test
+        run: |
+          echo "Hello, world!"
